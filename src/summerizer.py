@@ -22,12 +22,29 @@ def parse_chat(chat_path):
     except Exception as e:
         print(f"An error occurred: {e}")
         return []
-
+    
+def message_statistics(messages):
+    total = len(messages)
+    user_count = 0
+    ai_count = 0
+    for message in messages:
+        if message['speaker'] == 'User':
+            user_count += 1
+        elif message['speaker'] == 'AI':
+            ai_count += 1
+    stats = {
+        'total_messages': total,
+        'user_messages': user_count,
+        'ai_messages': ai_count
+    }
+    return stats
 
 def main():
     chat_path = 'logs/chat1.txt'
     messages = parse_chat(chat_path)
-    print(messages)
+    # print(messages)
+    stats = message_statistics(messages)
+    print(stats)
 
 if __name__ == "__main__":
     main()
