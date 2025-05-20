@@ -1,4 +1,9 @@
-
+import nltk
+nltk.download('stopwords')
+nltk.download('punkt_tab')
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+from collections import Counter
 
 def parse_chat(chat_path):
 
@@ -39,12 +44,38 @@ def message_statistics(messages):
     }
     return stats
 
+def keyword_analysis(messages, top_n=5):
+    stop_words = set(stopwords.words('english'))
+    all_words = []
+
+    for message in messages:
+        # tokenize the content of each message
+        words = word_tokenize(message['content'].lower())
+        # remove punctuation and non-alphabetic characters
+        words = [word for word in words if word.isalpha()]
+        # remove stop words
+        words = [word for word in words if word not in stop_words]
+        # add to the list of all words
+        all_words.extend(words)
+
+    print(all_words)
+    # count the frequency of each word
+    word_counts = Counter(all_words)
+    # get the most common words
+    most_common = word_counts.most_common(top_n)
+    ### use textrank to better common words
+    most_common_words = ', '.join(word for word, count in most_common)
+    return most_common_words
+    
+
 def main():
     chat_path = 'logs/chat1.txt'
     messages = parse_chat(chat_path)
     # print(messages)
     stats = message_statistics(messages)
-    print(stats)
+    # print(stats)
+    most_common = keyword_analysis(messages)
+    print("Most common keywords:",most_common)
 
 if __name__ == "__main__":
     main()
