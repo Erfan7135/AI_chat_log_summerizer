@@ -1,6 +1,7 @@
+import os
 import nltk
-nltk.download('stopwords')
-nltk.download('punkt_tab')
+# nltk.download('stopwords')
+# nltk.download('punkt_tab')
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from collections import Counter
@@ -15,12 +16,36 @@ def parse_chat(chat_path):
             lines = file.readlines()
             # print(lines)
             # doesn't work if multiple lines in content
+            current_speaker = None
+            current_content = []
             for line in lines:
-                speaker, content = line.split(':', 1)
+                if line.startswith('User:') or line.startswith('AI:'):
+                    #save the previoud message if it exists
+                    if current_speaker and current_content:
+                        messages.append({
+                            'speaker': current_speaker,
+                            'content': ' '.join(current_content).strip()
+                        })
+                        current_speaker = None
+                        current_content = []
+                    # reset for new message
+                    speaker, content = line.split(':', 1)
+                    current_speaker = speaker.strip()
+                    current_content .append(content.strip())
+                    
+                else:
+                    # if line doesn't start with User: or AI:, it's part of the content
+                    if current_speaker:
+                        current_content.append(line.strip())
+
+            # save the last message if it exists
+            if current_speaker and current_content:
                 messages.append({
-                    'speaker': speaker.strip(),
-                    'content': content.strip()
+                    'speaker': current_speaker,
+                    'content': ' '.join(current_content).strip()
                 })
+
+            # print(messages)
             return messages
     except FileNotFoundError:
         print(f"File {chat_path} not found.")
@@ -134,8 +159,14 @@ def gen_summery(file_path):
         print(f"An error occurred while saving the summary: {e}")
 
 def main():
-    chat_path = 'logs/chat2.txt'
-    gen_summery(chat_path)
+    # chat_path = 'logs/chat2.txt'
+    # gen_summery(chat_path)
+
+    current_dir = os.getcwd()
+    for file in os.listdir(os.path.join(current_dir, 'logs')):
+        if file.endswith('.txt'):
+            chat_path = 'logs/' + file
+            gen_summery(chat_path)
 
 if __name__ == "__main__":
     main()
