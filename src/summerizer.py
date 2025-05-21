@@ -105,18 +105,37 @@ def most_common_words(messages):
     # print("Aggregated results:", aggregated_results)
     sorted_results = sorted(aggregated_results.items(), key=lambda x: x[1], reverse=True)
     sorted_results = [word for word, score in sorted_results]
-    print("Most common words:", sorted_results)
+    # print("Sorted results:", sorted_results)
+    return sorted_results
+
+def gen_summery(file_path):
+    chat_path = file_path
+    messages = parse_chat(chat_path)
+    stats = message_statistics(messages)
+    keywords = most_common_words(messages)
+    # print(keywords)
+
+    ## template base summery using the first keyword
+    ## Can be improved by using a more sophisticated model or API
+    summary_text = f"This conversation is about {keywords[0]}.\n"
+    keywords = ', '.join(word for word in keywords[:5])
+
+    # create a new file with same name and .txt extension in a different directory
+    #remove logs/ & add output/ to the path
+    output_path = chat_path.replace('logs/', 'output/').replace('.txt', '_summary.txt')
+    try:
+        with open(output_path, 'w', encoding='utf-8') as file:
+            file.write(f"The Conversation had {stats['total_messages']} exchanges.\n")
+            file.write(summary_text)
+            file.write(f"Most common keywords: " + keywords + "\n")
+            
+        print(f"Summary saved to {output_path}")
+    except Exception as e:
+        print(f"An error occurred while saving the summary: {e}")
 
 def main():
     chat_path = 'logs/chat2.txt'
-    messages = parse_chat(chat_path)
-    # print(messages)
-    stats = message_statistics(messages)
-    # print(stats)
-    # most_common = keyword_analysis(messages)
-    # # most_common = tfidf_analysis(messages)
-    # print("Most common keywords:",most_common)
-    most_common_words(messages)
+    gen_summery(chat_path)
 
 if __name__ == "__main__":
     main()
