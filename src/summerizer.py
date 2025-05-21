@@ -4,6 +4,7 @@ nltk.download('punkt_tab')
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from collections import Counter
+from sklearn.feature_extraction.text import TfidfVectorizer
 
 def parse_chat(chat_path):
 
@@ -44,8 +45,9 @@ def message_statistics(messages):
     }
     return stats
 
-def keyword_analysis(messages, top_n=5):
-    stop_words = set(stopwords.words('english'))
+def keyword_analysis(messages):
+    custom_stop_words = ['hi', 'hello', 'hey', 'ok', 'okay', 'yes', 'no', 'sure', 'thanks', 'thank you', 'please', 'tell', 'ask']
+    stop_words = set(stopwords.words('english')).union(set(custom_stop_words))
     all_words = []
 
     for message in messages:
@@ -58,24 +60,63 @@ def keyword_analysis(messages, top_n=5):
         # add to the list of all words
         all_words.extend(words)
 
-    print(all_words)
     # count the frequency of each word
     word_counts = Counter(all_words)
     # get the most common words
-    most_common = word_counts.most_common(top_n)
-    ### use textrank to better common words
-    most_common_words = ', '.join(word for word, count in most_common)
-    return most_common_words
+    most_frequent = word_counts.most_common()
+    return most_frequent
     
 
+def tfidf_analysis(messages):
+    stop_words = list(stopwords.words('english'))
+
+    docs = [message['content'].lower() for message in messages]
+    vectorizer = TfidfVectorizer(
+        stop_words=stop_words, 
+        token_pattern=r'(?u)\b[a-zA-Z]+\b', # only alphabetic words
+    )
+
+    tfidf_matrix = vectorizer.fit_transform(docs)
+    feature_names = vectorizer.get_feature_names_out()
+
+    tfidf_scores = tfidf_matrix.sum(axis=0).A1
+    word_scores = {word: score for word, score in zip(feature_names, tfidf_scores)}
+
+    return sorted(word_scores.items(), key=lambda x: x[1], reverse=True)
+
+def most_common_words(messages):
+    # messages =[ msg for msg in messages if msg['speaker'] == 'User']
+    frequncy = keyword_analysis(messages)
+    tfidf = tfidf_analysis(messages)
+    # print(frequncy)
+    # print(tfidf)
+    aggregated_results = {}
+    tfidf_dict = {word: score for word, score in tfidf}
+    # aggregate the results
+    for word, count in frequncy:
+        if word in tfidf_dict:
+            #get the tfidf score for the word
+            tfidf_score = tfidf_dict[word]
+            # square ensures that the frequency has a greater impact on the score
+            # and add the tfidf score to it as tie breaker
+            aggregated_results[word] = (count**2)+tfidf_score
+            # print(f"Word: {word}, Frequency: {count}, TF-IDF Score: {tfidf_score}, Aggregated Score: {aggregated_results[word]}")
+    
+    # print("Aggregated results:", aggregated_results)
+    sorted_results = sorted(aggregated_results.items(), key=lambda x: x[1], reverse=True)
+    sorted_results = [word for word, score in sorted_results]
+    print("Most common words:", sorted_results)
+
 def main():
-    chat_path = 'logs/chat1.txt'
+    chat_path = 'logs/chat2.txt'
     messages = parse_chat(chat_path)
     # print(messages)
     stats = message_statistics(messages)
     # print(stats)
-    most_common = keyword_analysis(messages)
-    print("Most common keywords:",most_common)
+    # most_common = keyword_analysis(messages)
+    # # most_common = tfidf_analysis(messages)
+    # print("Most common keywords:",most_common)
+    most_common_words(messages)
 
 if __name__ == "__main__":
     main()
